@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--agent1-release", type=Path)
     parser.add_argument("--agent1-sha256")
     parser.add_argument("--development", action="store_true", help="allow absent/unapproved models; decisions abstain")
+    parser.add_argument("--specialists", type=Path, help="path to directory containing specialist artifacts (C2, botnet, encrypted)")
     parser.add_argument("--redis-url", default="redis://localhost:6379/0")
     parser.add_argument("--checkpoint", default="agent2_detection_product/artifacts/runtime.sqlite3")
     args = parser.parse_args()
@@ -36,6 +37,12 @@ def main():
         import joblib
         providers.append(joblib.load(args.release.parent / bundle_path))
         profile = sha256(args.release)
+    # Load specialist providers (C2, Botnet, Encrypted) if available
+    spec_dir = args.specialists or (Path("artifacts/specialists/0.1.0-sim") if Path("artifacts/specialists/0.1.0-sim").is_dir() else None)
+    if spec_dir and Path(spec_dir).is_dir():
+        from .models.providers import load_specialist_providers
+        spec_providers = load_specialist_providers(spec_dir)
+        providers.extend(spec_providers)
     drift = None
     if providers and getattr(providers[0], "drift_reference", None):
         from .drift import DriftMonitor

@@ -149,3 +149,25 @@ def test_audit_sampling_is_stable():
     assert audit_sample("s", "id", 1) is True
     assert audit_sample("s", "id", 0) is False
     assert audit_sample("s", "id") == audit_sample("s", "id")
+
+
+def test_ntp_contextual_gating_excludes_c2_beaconing():
+    from ..gating import gates
+    # Normal UDP traffic is applicable
+    udp_env = envelope(protocol="UDP")
+    ctx = mature_context()
+    assert gates(udp_env, ctx)["C2_BEACONING"]["applicable"] is True
+    assert gates(udp_env, ctx)["C2_BEACONING"]["ready"] is True
+
+    # NTP UDP traffic (port 123 in destination or route hints) is NOT applicable
+    ntp_env1 = envelope(protocol="UDP")
+    ntp_env1["entity_keys"]["destination"] = "198.51.100.1:123"
+    assert gates(ntp_env1, ctx)["C2_BEACONING"]["applicable"] is False
+    assert gates(ntp_env1, ctx)["C2_BEACONING"]["ready"] is False
+    assert gates(ntp_env1, ctx)["C2_BEACONING"]["reason"] == "NOT_APPLICABLE"
+
+    ntp_env2 = envelope(protocol="UDP")
+    ntp_env2["route_hints"]["ntp"] = True
+    assert gates(ntp_env2, ctx)["C2_BEACONING"]["applicable"] is False
+    assert gates(ntp_env2, ctx)["C2_BEACONING"]["ready"] is False
+

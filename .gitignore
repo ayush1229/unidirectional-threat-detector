@@ -76,3 +76,15 @@ linux-model-loader/
 *.jpg
 *.jpeg
 
+# Models and Simulated Data
+*.pkl
+*.pt
+*.joblib
+*.jsonl
+*.h5
+*.onnx
+*.log
+experiments/*-benchmark-*/
+artifacts/benchmarks/
+artifacts/experiments/
+artifacts/specialists/
